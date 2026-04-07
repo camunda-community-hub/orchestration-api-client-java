@@ -206,6 +206,16 @@ Base path: `/api/camunda`
 
 ### Search Decision Definitions (Example)
 
+The current implementation applies these request fields:
+
+- `page.from`
+- `page.limit`
+- `filter.decisionDefinitionId`
+- `filter.name`
+- `filter.decisionDefinitionKey`
+
+`sort` and other `filter` fields may be accepted in payloads but are not currently applied by `DecisionEvaluationService`.
+
 ```json
 {
   "page": {
@@ -228,14 +238,20 @@ Base path: `/api/camunda`
 
 ### Evaluate Decision (Examples)
 
+Rules enforced by the current implementation:
+
+- Either `decisionDefinitionId` or `decisionDefinitionKey` is required.
+- If both are present, `decisionDefinitionId` takes priority.
+- If only `decisionDefinitionKey` is present:
+  - Numeric value -> evaluated as a Camunda decision key (`long`).
+  - Non-numeric value -> treated as a decision ID fallback.
+
 By ID:
 
 ```json
 {
   "decisionDefinitionId": "my-decision-id",
-  "variables": {
-    "amount": 100
-  }
+  "variables": {}
 }
 ```
 
@@ -244,9 +260,7 @@ By Key:
 ```json
 {
   "decisionDefinitionKey": "2251799813326547",
-  "variables": {
-    "country": "US"
-  }
+  "variables": {}
 }
 ```
 
@@ -273,6 +287,10 @@ SOAP endpoint path: `/ws/*`
         <dec:entry>
           <dec:key>team</dec:key>
           <dec:value>East Regional</dec:value>
+        </dec:entry>
+        <dec:entry>
+          <dec:key>state</dec:key>
+          <dec:value>Alabama</dec:value>
         </dec:entry>
       </dec:variables>
     </dec:evaluateDecisionRequest>
