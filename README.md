@@ -393,5 +393,4 @@ If startup fails with unresolved placeholders, make sure all four Camunda enviro
 
 ## License
 
-This repository currently does not include a `LICENSE` file. Add one (for example Apache 2.0) before external distribution.
-
+This project is licensed under the Apache License, Version 2.0. See `LICENSE` for details.
