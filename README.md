@@ -388,34 +388,6 @@ Complex nested object request example:
 </soapenv:Envelope>
 ```
 
-Request example using `decisionDefinitionKey`:
-
-```xml
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
-                  xmlns:dec="http://camunda.org/consulting/decision-evaluation"
-                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <soapenv:Header/>
-  <soapenv:Body>
-    <dec:evaluateDecisionRequest>
-      <dec:decisionDefinitionKey>2251799813326547</dec:decisionDefinitionKey>
-      <dec:variables>
-        <dec:entry>
-          <dec:key>amount</dec:key>
-          <dec:value xsi:type="xsd:int" xmlns:xsd="http://www.w3.org/2001/XMLSchema">100</dec:value>
-        </dec:entry>
-        <dec:entry>
-          <dec:key>customer</dec:key>
-          <dec:value>
-            <tier>GOLD</tier>
-            <active>true</active>
-          </dec:value>
-        </dec:entry>
-      </dec:variables>
-    </dec:evaluateDecisionRequest>
-  </soapenv:Body>
-</soapenv:Envelope>
-```
-
 Both `decisionDefinitionId` and `decisionDefinitionKey` are optional at schema level, but the service requires at least one.
 
 ### SOAP Response Example
@@ -439,25 +411,65 @@ Success Response (detailed decision output):
 
 ```xml
 <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+  <SOAP-ENV:Header/>
   <SOAP-ENV:Body>
     <ns2:evaluateDecisionResponse xmlns:ns2="http://camunda.org/consulting/decision-evaluation">
       <ns2:success>true</ns2:success>
       <ns2:result>
+        <decisionEvaluationKey>6755399444437420</decisionEvaluationKey>
         <decisionId>discount-decision</decisionId>
-        <matchedRule>VIP_DISCOUNT_RULE</matchedRule>
-        <discountPercentage>15</discountPercentage>
-        <reason>
-          <customerType>VIP</customerType>
-          <minimumOrderTotal>500</minimumOrderTotal>
-        </reason>
-        <audit>
-          <evaluatedAt>2026-04-17T07:45:42Z</evaluatedAt>
-          <inputs>
-            <team>East Regional</team>
-            <state>Alabama</state>
-            <amount>1000</amount>
-          </inputs>
-        </audit>
+        <decisionInstanceKey>6755399444437420</decisionInstanceKey>
+        <decisionKey>2251799816375669</decisionKey>
+        <decisionName>Discount Decision</decisionName>
+        <decisionOutput>0.15</decisionOutput>
+        <decisionRequirementsId>discount-decision-DRD</decisionRequirementsId>
+        <decisionRequirementsKey>2251799816375667</decisionRequirementsKey>
+        <decisionVersion>11</decisionVersion>
+        <evaluatedDecisions>
+          <item>
+            <decisionEvaluationInstanceKey>6755399444437420-1</decisionEvaluationInstanceKey>
+            <decisionId>discount-decision</decisionId>
+            <decisionKey>2251799816375669</decisionKey>
+            <decisionName>Discount Decision</decisionName>
+            <decisionOutput>0.15</decisionOutput>
+            <decisionType>DECISION_TABLE</decisionType>
+            <decisionVersion>11</decisionVersion>
+            <evaluatedInputs>
+              <item>
+                <inputId>Input_1</inputId>
+                <inputName>Customer Type</inputName>
+                <inputValue>&quot;VIP&quot;</inputValue>
+              </item>
+              <item>
+                <inputId>InputClause_1ip3z40</inputId>
+                <inputName>Total Amount</inputName>
+                <inputValue>1000</inputValue>
+              </item>
+              <item>
+                <inputId>InputClause_1nqicll</inputId>
+                <inputName>Electronics Category Count</inputName>
+                <inputValue>true</inputValue>
+              </item>
+            </evaluatedInputs>
+            <matchedRules>
+              <item>
+                <evaluatedOutputs>
+                  <item>
+                    <outputId>Output_1</outputId>
+                    <outputName>Discount</outputName>
+                    <outputValue>0.15</outputValue>
+                  </item>
+                </evaluatedOutputs>
+                <ruleId>DecisionRule_16s0n6q</ruleId>
+                <ruleIndex>1</ruleIndex>
+              </item>
+            </matchedRules>
+            <tenantId>&lt;default&gt;</tenantId>
+          </item>
+        </evaluatedDecisions>
+        <failedDecisionId></failedDecisionId>
+        <failureMessage></failureMessage>
+        <tenantId>&lt;default&gt;</tenantId>
       </ns2:result>
     </ns2:evaluateDecisionResponse>
   </SOAP-ENV:Body>
