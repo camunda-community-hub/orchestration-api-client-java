@@ -58,10 +58,13 @@ class DecisionEvaluationSoapEndpointContractTest {
                 </ns:evaluateDecisionRequest>
                 """);
 
+        // Contract response is JAXB XML: assert the structured result element instead of JSON text.
         Source expected = new StringSource("""
                 <ns:evaluateDecisionResponse xmlns:ns="http://camunda.org/consulting/decision-evaluation">
-                    <success>true</success>
-                    <result>{"outcome":"approved"}</result>
+                    <ns:success>true</ns:success>
+                    <ns:result>
+                        <outcome>approved</outcome>
+                    </ns:result>
                 </ns:evaluateDecisionResponse>
                 """);
 
@@ -80,5 +83,3 @@ class DecisionEvaluationSoapEndpointContractTest {
         }
     }
 }
-
-

@@ -20,7 +20,15 @@ A Spring Boot application that provides **REST and SOAP API endpoints** for inte
 - [Running the Application](#running-the-application)
 - [Swagger UI / OpenAPI Docs](#swagger-ui--openapi-docs)
 - [REST API Endpoints](#rest-api-endpoints)
+  - [Get Cluster Topology](#get-cluster-topology)
+  - [Get a Decision Definition](#get-a-decision-definition)
+  - [Get Decision Definition XML](#get-decision-definition-xml)
+  - [Search Decision Definitions](#search-decision-definitions)
+  - [Evaluate a Decision Definition](#evaluate-a-decision-definition)
 - [SOAP Endpoint](#soap-endpoint)
+  - [WSDL Access](#wsdl-access)
+  - [SOAP Request Example](#soap-request-example)
+  - [SOAP Response Example](#soap-response-example)
 - [Request & Response Models](#request--response-models)
 - [Running Tests](#running-tests)
 - [Building a JAR](#building-a-jar)
@@ -51,10 +59,10 @@ This application acts as a **Java-based REST and SOAP proxy** for Camunda 8 Orch
 | Spring Web MVC | via `spring-boot-starter-web` |
 | Spring Web Services (SOAP) | via `spring-boot-starter-web-services` |
 | Bean Validation | via `spring-boot-starter-validation` |
-| Camunda Java Client | 8.8.21 |
+| Camunda Java Client | 8.9.0 |
 | OpenAPI + Swagger UI | `springdoc-openapi-starter-webmvc-ui:3.0.2` |
 | JAXB | `jakarta.xml.bind-api`, `jaxb-runtime` |
-| WSDL4J | 1.6.3 |
+| WSDL support | `io.github.librewsdl4j:libre-wsdl4j:1.12.0` |
 | Maven | 3.x (via wrapper `mvnw`) |
 
 ---
@@ -75,6 +83,7 @@ src/
 │   │   └── soap/
 │   │       ├── SoapWebServiceConfig.java
 │   │       ├── DecisionEvaluationSoapEndpoint.java
+│   │       ├── SoapUtils.java
 │   │       └── model/
 │   │           ├── EvaluateDecisionRequest.java
 │   │           ├── EvaluateDecisionResponse.java
@@ -88,6 +97,8 @@ src/
         ├── OrchestrationApiClientApplicationTests.java
         ├── rest/DecisionDefinitionControllerTest.java
         └── soap/
+            ├── EvaluateDecisionRequestJaxbTest.java
+            ├── SoapUtilsTest.java
             ├── DecisionEvaluationSoapEndpointTest.java
             └── DecisionEvaluationSoapEndpointContractTest.java
 ```
@@ -196,15 +207,50 @@ When the app is running:
 
 ## REST API Endpoints
 
-Base path: `/api/camunda`
+All REST endpoints are available under the `/api/camunda` prefix.
 
-- `GET /topology`
-- `GET /decision-definitions/{decisionDefinitionKey}`
-- `GET /decision-definitions/{decisionDefinitionKey}/xml`
-- `POST /decision-definitions/search`
-- `POST /decision-definitions/evaluation`
+---
 
-### Search Decision Definitions (Example)
+### Get Cluster Topology
+
+```text
+GET /api/camunda/topology
+```
+
+Returns Camunda cluster topology information.
+
+---
+
+### Get a Decision Definition
+
+```text
+GET /api/camunda/decision-definitions/{decisionDefinitionKey}
+```
+
+| Path Parameter | Description |
+| --- | --- |
+| `decisionDefinitionKey` | Camunda decision definition key |
+
+---
+
+### Get Decision Definition XML
+
+```text
+GET /api/camunda/decision-definitions/{decisionDefinitionKey}/xml
+```
+
+| Path Parameter | Description |
+| --- | --- |
+| `decisionDefinitionKey` | Camunda decision definition key |
+
+---
+
+### Search Decision Definitions
+
+```text
+POST /api/camunda/decision-definitions/search
+Content-Type: application/json
+```
 
 The current implementation applies these request fields:
 
@@ -215,6 +261,8 @@ The current implementation applies these request fields:
 - `filter.decisionDefinitionKey`
 
 `sort` and other `filter` fields may be accepted in payloads but are not currently applied by `DecisionEvaluationService`.
+
+Example request:
 
 ```json
 {
@@ -236,7 +284,14 @@ The current implementation applies these request fields:
 }
 ```
 
-### Evaluate Decision (Examples)
+---
+
+### Evaluate a Decision Definition
+
+```text
+POST /api/camunda/decision-definitions/evaluation
+Content-Type: application/json
+```
 
 Rules enforced by the current implementation:
 
@@ -246,7 +301,7 @@ Rules enforced by the current implementation:
   - Numeric value -> evaluated as a Camunda decision key (`long`).
   - Non-numeric value -> treated as a decision ID fallback.
 
-By ID:
+Request example using `decisionDefinitionId`:
 
 ```json
 {
@@ -255,7 +310,7 @@ By ID:
 }
 ```
 
-By Key:
+Request example using `decisionDefinitionKey`:
 
 ```json
 {
@@ -275,6 +330,10 @@ SOAP endpoint path: `/ws/*`
 - `http://localhost:8080/ws/decisionEvaluation.wsdl`
 
 ### SOAP Request Example
+
+The SOAP operation is `evaluateDecisionRequest` in namespace `http://camunda.org/consulting/decision-evaluation`.
+
+Request example using `decisionDefinitionId`:
 
 ```xml
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
@@ -298,18 +357,144 @@ SOAP endpoint path: `/ws/*`
 </soapenv:Envelope>
 ```
 
+Complex nested object request example:
+
+```xml
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                  xmlns:dec="http://camunda.org/consulting/decision-evaluation">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <dec:evaluateDecisionRequest>
+      <dec:decisionDefinitionId>discount-decision</dec:decisionDefinitionId>
+      <dec:variables>
+        <dec:entry>
+          <dec:key>order</dec:key>
+          <dec:value>
+            <dec:customerType>VIP</dec:customerType>
+            <dec:total>1000</dec:total>
+            <dec:items>
+              <dec:category>ELECTRONICS</dec:category>
+              <dec:quantity>1</dec:quantity>
+            </dec:items>
+            <dec:items>
+              <dec:category>ELECTRONICS</dec:category>
+              <dec:quantity>1</dec:quantity>
+            </dec:items>
+          </dec:value>
+        </dec:entry>
+      </dec:variables>
+    </dec:evaluateDecisionRequest>
+  </soapenv:Body>
+</soapenv:Envelope>
+```
+
+Request example using `decisionDefinitionKey`:
+
+```xml
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                  xmlns:dec="http://camunda.org/consulting/decision-evaluation"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <dec:evaluateDecisionRequest>
+      <dec:decisionDefinitionKey>2251799813326547</dec:decisionDefinitionKey>
+      <dec:variables>
+        <dec:entry>
+          <dec:key>amount</dec:key>
+          <dec:value xsi:type="xsd:int" xmlns:xsd="http://www.w3.org/2001/XMLSchema">100</dec:value>
+        </dec:entry>
+        <dec:entry>
+          <dec:key>customer</dec:key>
+          <dec:value>
+            <tier>GOLD</tier>
+            <active>true</active>
+          </dec:value>
+        </dec:entry>
+      </dec:variables>
+    </dec:evaluateDecisionRequest>
+  </soapenv:Body>
+</soapenv:Envelope>
+```
+
+Both `decisionDefinitionId` and `decisionDefinitionKey` are optional at schema level, but the service requires at least one.
+
 ### SOAP Response Example
+
+Success response (example with object-like result payload):
 
 ```xml
 <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
   <SOAP-ENV:Body>
     <ns2:evaluateDecisionResponse xmlns:ns2="http://camunda.org/consulting/decision-evaluation">
       <ns2:success>true</ns2:success>
-      <ns2:result>{"outcome":"approved"}</ns2:result>
+      <ns2:result>
+        <outcome>approved</outcome>
+      </ns2:result>
     </ns2:evaluateDecisionResponse>
   </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>
 ```
+
+Success Response (detailed decision output):
+
+```xml
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+  <SOAP-ENV:Body>
+    <ns2:evaluateDecisionResponse xmlns:ns2="http://camunda.org/consulting/decision-evaluation">
+      <ns2:success>true</ns2:success>
+      <ns2:result>
+        <decisionId>discount-decision</decisionId>
+        <matchedRule>VIP_DISCOUNT_RULE</matchedRule>
+        <discountPercentage>15</discountPercentage>
+        <reason>
+          <customerType>VIP</customerType>
+          <minimumOrderTotal>500</minimumOrderTotal>
+        </reason>
+        <audit>
+          <evaluatedAt>2026-04-17T07:45:42Z</evaluatedAt>
+          <inputs>
+            <team>East Regional</team>
+            <state>Alabama</state>
+            <amount>1000</amount>
+          </inputs>
+        </audit>
+      </ns2:result>
+    </ns2:evaluateDecisionResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>
+```
+
+`result` is a structured XML container generated from the decision output object (not a JSON string field).
+
+Success response (example with scalar result field):
+
+```xml
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+  <SOAP-ENV:Body>
+    <ns2:evaluateDecisionResponse xmlns:ns2="http://camunda.org/consulting/decision-evaluation">
+      <ns2:success>true</ns2:success>
+      <ns2:result>
+        <decision>approved</decision>
+      </ns2:result>
+    </ns2:evaluateDecisionResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>
+```
+
+Error response (business validation/service error):
+
+```xml
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+  <SOAP-ENV:Body>
+    <ns2:evaluateDecisionResponse xmlns:ns2="http://camunda.org/consulting/decision-evaluation">
+      <ns2:success>false</ns2:success>
+      <ns2:errorMessage>Either decisionDefinitionId or decisionDefinitionKey must be provided.</ns2:errorMessage>
+    </ns2:evaluateDecisionResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>
+```
+
+`DecisionEvaluationSoapEndpoint` returns business errors in the response payload (`success=false`) instead of emitting a SOAP Fault.
 
 ---
 
@@ -355,6 +540,8 @@ Run specific tests:
 ./mvnw test -Dtest=DecisionDefinitionControllerTest
 ./mvnw test -Dtest=DecisionEvaluationSoapEndpointTest
 ./mvnw test -Dtest=DecisionEvaluationSoapEndpointContractTest
+./mvnw test -Dtest=EvaluateDecisionRequestJaxbTest
+./mvnw test -Dtest=SoapUtilsTest
 ./mvnw test -Dtest=OrchestrationApiClientApplicationTests
 ```
 

@@ -15,8 +15,10 @@
     <description>orchestration-api-client-java</description>
     <properties>
         <java.version>21</java.version>
-        <camunda.version>8.8.21</camunda.version>
+        <camunda.version>8.9.0</camunda.version>
         <springdoc.version>3.0.2</springdoc.version>
+        <libre-wsdl4j.version>1.12.0</libre-wsdl4j.version>
+        <mockito.version>5.20.0</mockito.version>
     </properties>
     <dependencies>
 
@@ -41,6 +43,12 @@
         <dependency>
             <groupId>org.springframework.ws</groupId>
             <artifactId>spring-ws-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -88,6 +96,7 @@
         <dependency>
             <groupId>org.glassfish.jaxb</groupId>
             <artifactId>jaxb-runtime</artifactId>
+            <scope>runtime</scope>
         </dependency>
 
         <!-- ===== Swagger / OpenAPI UI ===== -->
@@ -105,10 +114,12 @@
         </dependency>
 
         <!-- ===== SOAP / WSDL support ===== -->
+        <!-- Source: https://mvnrepository.com/artifact/io.github.librewsdl4j/libre-wsdl4j -->
         <dependency>
-            <groupId>wsdl4j</groupId>
-            <artifactId>wsdl4j</artifactId>
-            <version>1.6.3</version>
+            <groupId>io.github.librewsdl4j</groupId>
+            <artifactId>libre-wsdl4j</artifactId>
+            <version>${libre-wsdl4j.version}</version>
+            <scope>runtime</scope>
         </dependency>
     </dependencies>
 

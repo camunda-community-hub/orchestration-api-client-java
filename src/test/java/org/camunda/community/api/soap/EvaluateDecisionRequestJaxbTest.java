@@ -1,0 +1,173 @@
+package org.camunda.community.api.soap;
+
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.Unmarshaller;
+import org.camunda.community.api.DecisionDTO;
+import org.camunda.community.api.DecisionEvaluationService;
+import org.camunda.community.api.soap.model.EvaluateDecisionRequest;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
+import org.w3c.dom.Node;
+import org.xml.sax.InputSource;
+
+import tools.jackson.databind.ObjectMapper;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.StringReader;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class EvaluateDecisionRequestJaxbTest {
+
+    @Test
+    void unmarshalsQualifiedSoapRequestElements() throws Exception {
+        EvaluateDecisionRequest request = unmarshallRequest();
+
+        assertEquals("nt-decision", request.getDecisionDefinitionId());
+        assertNotNull(request.getVariables());
+        assertEquals(2, request.getVariables().getEntries().size());
+        assertEquals("team", request.getVariables().getEntries().getFirst().getKey());
+        assertEquals("East Regional", valueAsText(request.getVariables().getEntries().getFirst().getValue()));
+        assertEquals("state", request.getVariables().getEntries().get(1).getKey());
+        assertEquals("Alabama", valueAsText(request.getVariables().getEntries().get(1).getValue()));
+    }
+
+    @Test
+    void endpointNormalizesJaxbAnyTypeValuesBeforeCallingDecisionService() throws Exception {
+        DecisionEvaluationService decisionService = Mockito.mock(DecisionEvaluationService.class);
+        Mockito.when(decisionService.evaluate(Mockito.any())).thenReturn(Map.of("decision", "approved"));
+
+        DecisionEvaluationSoapEndpoint endpoint = new DecisionEvaluationSoapEndpoint(decisionService, new ObjectMapper());
+
+        endpoint.evaluateDecision(unmarshallRequest());
+
+        ArgumentCaptor<DecisionDTO> captor = ArgumentCaptor.forClass(DecisionDTO.class);
+        Mockito.verify(decisionService).evaluate(captor.capture());
+
+        DecisionDTO dto = captor.getValue();
+        assertEquals("nt-decision", dto.getDecisionDefinitionId());
+        assertEquals("East Regional", dto.getVariables().get("team"));
+        assertEquals("Alabama", dto.getVariables().get("state"));
+    }
+
+    @Test
+    void endpointPreservesComplexNestedObjectStructure() throws Exception {
+        String xml = """
+                <dec:evaluateDecisionRequest xmlns:dec="http://camunda.org/consulting/decision-evaluation">
+                  <dec:decisionDefinitionId>discount-decision</dec:decisionDefinitionId>
+                  <dec:variables>
+                    <dec:entry>
+                      <dec:key>order</dec:key>
+                      <dec:value>
+                        <dec:customerType>VIP</dec:customerType>
+                        <dec:total>1000</dec:total>
+                        <dec:items>
+                          <dec:category>ELECTRONICS</dec:category>
+                          <dec:quantity>1</dec:quantity>
+                        </dec:items>
+                        <dec:items>
+                          <dec:category>ELECTRONICS</dec:category>
+                          <dec:quantity>1</dec:quantity>
+                        </dec:items>
+                      </dec:value>
+                    </dec:entry>
+                  </dec:variables>
+                </dec:evaluateDecisionRequest>
+                """;
+
+        JAXBContext context = JAXBContext.newInstance(EvaluateDecisionRequest.class);
+        Unmarshaller unmarshaller = context.createUnmarshaller();
+
+        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        documentBuilderFactory.setNamespaceAware(true);
+        var document = documentBuilderFactory.newDocumentBuilder()
+                .parse(new InputSource(new StringReader(xml)));
+
+        EvaluateDecisionRequest request = unmarshaller
+                .unmarshal(document.getDocumentElement(), EvaluateDecisionRequest.class)
+                .getValue();
+
+        DecisionEvaluationService decisionService = Mockito.mock(DecisionEvaluationService.class);
+        Mockito.when(decisionService.evaluate(Mockito.any())).thenReturn(Map.of("discount", 0.15));
+
+        DecisionEvaluationSoapEndpoint endpoint = new DecisionEvaluationSoapEndpoint(decisionService, new ObjectMapper());
+        endpoint.evaluateDecision(request);
+
+        ArgumentCaptor<DecisionDTO> captor = ArgumentCaptor.forClass(DecisionDTO.class);
+        Mockito.verify(decisionService).evaluate(captor.capture());
+
+        DecisionDTO dto = captor.getValue();
+        assertEquals("discount-decision", dto.getDecisionDefinitionId());
+
+        // Verify nested structure is preserved
+        @SuppressWarnings("unchecked")
+        Map<String, Object> orderMap = (Map<String, Object>) dto.getVariables().get("order");
+        assertNotNull(orderMap);
+        assertEquals("VIP", orderMap.get("customerType"));
+
+        // Verify numeric type conversion for total
+        Object totalObj = orderMap.get("total");
+        assertNotNull(totalObj);
+        assertTrue(totalObj instanceof Number, "total should be a Number, but got: " + totalObj.getClass().getSimpleName());
+        assertEquals(1000.0, ((Number) totalObj).doubleValue());
+
+        // Verify items array
+        Object itemsObj = orderMap.get("items");
+        assertNotNull(itemsObj);
+        assertTrue(itemsObj instanceof java.util.List);
+        @SuppressWarnings("unchecked")
+        java.util.List<Object> items = (java.util.List<Object>) itemsObj;
+        assertEquals(2, items.size());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> firstItem = (Map<String, Object>) items.getFirst();
+        assertEquals("ELECTRONICS", firstItem.get("category"));
+
+        // Verify numeric type conversion for quantity
+        Object quantityObj = firstItem.get("quantity");
+        assertNotNull(quantityObj);
+        assertTrue(quantityObj instanceof Number, "quantity should be a Number, but got: " + quantityObj.getClass().getSimpleName());
+        assertEquals(1L, ((Number) quantityObj).longValue());
+    }
+
+    private EvaluateDecisionRequest unmarshallRequest() throws Exception {
+        String xml = """
+                <dec:evaluateDecisionRequest xmlns:dec="http://camunda.org/consulting/decision-evaluation">
+                  <dec:decisionDefinitionId>nt-decision</dec:decisionDefinitionId>
+                  <dec:variables>
+                    <dec:entry>
+                      <dec:key>team</dec:key>
+                      <dec:value>East Regional</dec:value>
+                    </dec:entry>
+                    <dec:entry>
+                      <dec:key>state</dec:key>
+                      <dec:value>Alabama</dec:value>
+                    </dec:entry>
+                  </dec:variables>
+                </dec:evaluateDecisionRequest>
+                """;
+
+        JAXBContext context = JAXBContext.newInstance(EvaluateDecisionRequest.class);
+        Unmarshaller unmarshaller = context.createUnmarshaller();
+
+        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        documentBuilderFactory.setNamespaceAware(true);
+        var document = documentBuilderFactory.newDocumentBuilder()
+                .parse(new InputSource(new StringReader(xml)));
+
+        return unmarshaller
+                .unmarshal(document.getDocumentElement(), EvaluateDecisionRequest.class)
+                .getValue();
+    }
+
+    private String valueAsText(Object value) {
+        if (value instanceof Node node) {
+            return node.getTextContent();
+        }
+        return String.valueOf(value);
+    }
+}
+

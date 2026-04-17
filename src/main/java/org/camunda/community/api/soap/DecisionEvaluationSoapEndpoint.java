@@ -1,9 +1,10 @@
 package org.camunda.community.api.soap;
 
-import tools.jackson.core.JacksonException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.ObjectMapper;
-import org.camunda.community.api.DecisionDTO;
 import org.camunda.community.api.DecisionEvaluationService;
+import org.camunda.community.api.DecisionDTO;
 import org.camunda.community.api.soap.model.EvaluateDecisionRequest;
 import org.camunda.community.api.soap.model.EvaluateDecisionResponse;
 import org.springframework.ws.server.endpoint.annotation.Endpoint;
@@ -16,6 +17,8 @@ import java.util.Map;
 
 @Endpoint
 public class DecisionEvaluationSoapEndpoint {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DecisionEvaluationSoapEndpoint.class);
 
     private static final String NAMESPACE_URI = "http://camunda.org/consulting/decision-evaluation";
 
@@ -32,6 +35,9 @@ public class DecisionEvaluationSoapEndpoint {
     public EvaluateDecisionResponse evaluateDecision(@RequestPayload EvaluateDecisionRequest request) {
         EvaluateDecisionResponse response = new EvaluateDecisionResponse();
 
+        LOGGER.info("Received decision evaluation request for definitionId: {}, definitionKey: {}",
+                request.getDecisionDefinitionId(), request.getDecisionDefinitionKey());
+
         DecisionDTO dto = new DecisionDTO();
         dto.setDecisionDefinitionId(request.getDecisionDefinitionId());
         dto.setDecisionDefinitionKey(request.getDecisionDefinitionKey());
@@ -39,23 +45,25 @@ public class DecisionEvaluationSoapEndpoint {
         if (request.getVariables() != null) {
             Map<String, Object> variableMap = new HashMap<>();
             request.getVariables().getEntries()
-                    .forEach(entry -> variableMap.put(entry.getKey(), entry.getValue()));
+                    .forEach(entry -> variableMap.put(entry.getKey(), SoapUtils.normalizeSoapValue(entry.getValue())));
             dto.setVariables(variableMap);
         }
 
         try {
             Object result = decisionEvaluationService.evaluate(dto);
             response.setSuccess(true);
-            response.setResult(asJson(result));
+            response.setResult(SoapUtils.toSoapResult(objectMapper, result));
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("SOAP success envelope preview: {}", SoapUtils.toSoapSuccess(objectMapper, result));
+            }
         } catch (Exception e) {
             response.setSuccess(false);
-            response.setErrorMessage(e.getMessage());
+            response.setErrorMessage(e.getMessage() != null ? e.getMessage() : "Unexpected SOAP processing error.");
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("SOAP error envelope preview: {}", SoapUtils.toSoapError(e.getMessage()));
+            }
         }
 
         return response;
-    }
-
-    private String asJson(Object result) throws JacksonException {
-        return objectMapper.writeValueAsString(result);
     }
 }
