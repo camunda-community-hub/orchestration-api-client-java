@@ -18,7 +18,6 @@
         <camunda.version>8.9.0</camunda.version>
         <springdoc.version>3.0.2</springdoc.version>
         <libre-wsdl4j.version>1.12.0</libre-wsdl4j.version>
-        <mockito.version>5.20.0</mockito.version>
     </properties>
     <dependencies>
 
@@ -43,12 +42,6 @@
         <dependency>
             <groupId>org.springframework.ws</groupId>
             <artifactId>spring-ws-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -127,17 +120,7 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <argLine>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar --enable-native-access=ALL-UNNAMED</argLine>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <configuration>
-                    <argLine>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar --enable-native-access=ALL-UNNAMED</argLine>
-                </configuration>
                 <executions>
                     <execution>
                         <goals>

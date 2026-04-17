@@ -18,12 +18,20 @@ import java.util.Arrays;
 @Configuration
 public class OpenApiConfig {
 
+    private static final String OPENAPI_TITLE = "Orchestration API Client Java API";
+    private static final String DEFAULT_VERSION = "0.0.1-SNAPSHOT";
+
+    private static String resolveApplicationVersion() {
+        String implementationVersion = OpenApiConfig.class.getPackage().getImplementationVersion();
+        return implementationVersion != null ? implementationVersion : DEFAULT_VERSION;
+    }
+
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Orchestration Cluster Java Client API")
-                        .version("0.0.1-SNAPSHOT")
+                        .title(OPENAPI_TITLE)
+                        .version(resolveApplicationVersion())
                         .description("REST and SOAP API client for interacting with Camunda 8 Orchestration Cluster. " +
                                 "This application provides endpoints to search and evaluate DMN decision definitions " +
                                 "using the official Camunda Java Client library.")
@@ -40,4 +48,3 @@ public class OpenApiConfig {
                         .url("https://docs.camunda.io/"));
     }
 }
-

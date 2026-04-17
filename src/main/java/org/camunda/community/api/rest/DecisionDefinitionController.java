@@ -12,7 +12,6 @@ import org.camunda.community.api.DecisionDTO;
 import org.camunda.community.api.DecisionEvaluationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -44,12 +43,7 @@ public class DecisionDefinitionController {
     })
     @GetMapping(path = "/topology", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> topology() {
-        try {
-            return ResponseEntity.ok(decisionEvaluationService.topology());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error retrieving topology: " + e.getMessage());
-        }
+        return ResponseEntity.ok(decisionEvaluationService.topology());
     }
 
     @Operation(summary = "Get a decision definition", description = "Returns a Camunda decision definition by its key")
@@ -61,12 +55,7 @@ public class DecisionDefinitionController {
     public ResponseEntity<?> getDecisionDefinition(
             @Parameter(description = "Camunda decision definition key", required = true, example = "2251799813326547")
             @PathVariable long decisionDefinitionKey) {
-        try {
-            return ResponseEntity.ok(decisionEvaluationService.getDecisionDefinition(decisionDefinitionKey));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error getting decision definition: " + e.getMessage());
-        }
+        return ResponseEntity.ok(decisionEvaluationService.getDecisionDefinition(decisionDefinitionKey));
     }
 
     @Operation(summary = "Get decision definition XML", description = "Returns the XML representation of a Camunda decision definition by its key")
@@ -78,17 +67,13 @@ public class DecisionDefinitionController {
     public ResponseEntity<?> getDecisionDefinitionXml(
             @Parameter(description = "Camunda decision definition key", required = true, example = "2251799813326547")
             @PathVariable long decisionDefinitionKey) {
-        try {
-            return ResponseEntity.ok(decisionEvaluationService.getDecisionDefinitionXml(decisionDefinitionKey));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error getting decision definition XML: " + e.getMessage());
-        }
+        return ResponseEntity.ok(decisionEvaluationService.getDecisionDefinitionXml(decisionDefinitionKey));
     }
 
     @Operation(summary = "Search decision definitions", description = "Searches Camunda decision definitions using the provided filter criteria")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Successfully retrieved decision definitions"),
+            @ApiResponse(responseCode = "400", description = "Invalid search request payload", content = @Content(schema = @Schema(implementation = String.class))),
             @ApiResponse(responseCode = "500", description = "Error communicating with the Camunda cluster", content = @Content(schema = @Schema(implementation = String.class)))
     })
     @PostMapping(path = "/decision-definitions/search", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -128,12 +113,7 @@ public class DecisionDefinitionController {
                     )
             )
             @RequestBody(required = false) Map<String, Object> requestBody) {
-        try {
-            return ResponseEntity.ok(decisionEvaluationService.searchDecisionDefinitions(requestBody));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error searching decision definitions: " + e.getMessage());
-        }
+        return ResponseEntity.ok(decisionEvaluationService.searchDecisionDefinitions(requestBody));
     }
 
     @Operation(summary = "Evaluate a decision definition", description = "Evaluates a Camunda decision definition using the provided input variables")
@@ -172,14 +152,7 @@ public class DecisionDefinitionController {
                             }
                     ))
             @RequestBody DecisionDTO request) {
-        try {
-            LOGGER.info("Received decision evaluation request for id='{}' key='{}'", request.getDecisionDefinitionId(), request.getDecisionDefinitionKey());
-            return ResponseEntity.ok(decisionEvaluationService.evaluate(request));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error evaluating decision definition: " + e.getMessage());
-        }
+        LOGGER.info("Received decision evaluation request for id='{}' key='{}'", request.getDecisionDefinitionId(), request.getDecisionDefinitionKey());
+        return ResponseEntity.ok(decisionEvaluationService.evaluate(request));
     }
 }

@@ -35,7 +35,9 @@ class DecisionDefinitionControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice(new GlobalRestExceptionHandler())
+                .build();
     }
 
     @Test
@@ -54,7 +56,7 @@ class DecisionDefinitionControllerTest {
 
         mockMvc.perform(get("/api/camunda/decision-definitions/42"))
                 .andExpect(status().isInternalServerError())
-                .andExpect(content().string("Error getting decision definition: camunda unavailable"));
+                .andExpect(content().string("Internal server error: camunda unavailable"));
     }
 
     @Test
@@ -112,5 +114,24 @@ class DecisionDefinitionControllerTest {
 
         verify(decisionEvaluationService).getDecisionDefinitionXml(eq(99L));
     }
-}
 
+    @Test
+    void searchDecisionDefinitionsReturnsBadRequestForInvalidDecisionDefinitionKey() throws Exception {
+        given(decisionEvaluationService.searchDecisionDefinitions(any()))
+                .willThrow(new IllegalArgumentException("Invalid filter.decisionDefinitionKey: must be a numeric value."));
+
+        mockMvc.perform(post("/api/camunda/decision-definitions/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "filter": {
+                                    "decisionDefinitionKey": "not-a-number"
+                                  }
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Invalid filter.decisionDefinitionKey: must be a numeric value."));
+
+        verify(decisionEvaluationService).searchDecisionDefinitions(any());
+    }
+}

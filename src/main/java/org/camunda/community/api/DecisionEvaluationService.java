@@ -75,7 +75,11 @@ public class DecisionEvaluationService {
 
                 Object decisionDefinitionKey = filter.get("decisionDefinitionKey");
                 if (decisionDefinitionKey != null) {
-                    f.decisionDefinitionKey(Long.parseLong(String.valueOf(decisionDefinitionKey)));
+                    try {
+                        f.decisionDefinitionKey(Long.parseLong(String.valueOf(decisionDefinitionKey)));
+                    } catch (NumberFormatException ex) {
+                        throw new IllegalArgumentException("Invalid filter.decisionDefinitionKey: must be a numeric value.");
+                    }
                 }
             });
         }

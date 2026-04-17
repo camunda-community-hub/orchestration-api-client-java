@@ -388,6 +388,8 @@ Complex nested object request example:
 </soapenv:Envelope>
 ```
 
+Note: repeated sibling elements (for example multiple `<dec:items>`) are normalized into Java lists by backend SOAP value normalization.
+
 Both `decisionDefinitionId` and `decisionDefinitionKey` are optional at schema level, but the service requires at least one.
 
 ### SOAP Response Example
@@ -476,7 +478,7 @@ Success Response (detailed decision output):
 </SOAP-ENV:Envelope>
 ```
 
-`result` is a structured XML container generated from the decision output object (not a JSON string field).
+Note: repeated XML nodes in decision output (for example `<item>` under `evaluatedInputs` or `matchedRules`) map to list-like structures during normalization.
 
 Success response (example with scalar result field):
 

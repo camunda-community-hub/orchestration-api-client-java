@@ -7,12 +7,14 @@ import org.camunda.community.api.DecisionEvaluationService;
 import org.camunda.community.api.DecisionDTO;
 import org.camunda.community.api.soap.model.EvaluateDecisionRequest;
 import org.camunda.community.api.soap.model.EvaluateDecisionResponse;
+import org.camunda.community.api.soap.model.SoapVariableEntry;
 import org.springframework.ws.server.endpoint.annotation.Endpoint;
 import org.springframework.ws.server.endpoint.annotation.PayloadRoot;
 import org.springframework.ws.server.endpoint.annotation.RequestPayload;
 import org.springframework.ws.server.endpoint.annotation.ResponsePayload;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Endpoint
@@ -44,9 +46,15 @@ public class DecisionEvaluationSoapEndpoint {
 
         if (request.getVariables() != null) {
             Map<String, Object> variableMap = new HashMap<>();
-            request.getVariables().getEntries()
-                    .forEach(entry -> variableMap.put(entry.getKey(), SoapUtils.normalizeSoapValue(entry.getValue())));
-            dto.setVariables(variableMap);
+            List<SoapVariableEntry> entries = request.getVariables().getEntries();
+            if (entries != null) {
+                entries.stream()
+                        .filter(entry -> entry != null && entry.getKey() != null && !entry.getKey().isBlank())
+                        .forEach(entry -> variableMap.put(entry.getKey(), SoapUtils.normalizeSoapValue(entry.getValue())));
+            }
+            if (!variableMap.isEmpty()) {
+                dto.setVariables(variableMap);
+            }
         }
 
         try {
